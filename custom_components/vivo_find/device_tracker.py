@@ -14,7 +14,13 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_DEVICE_ALIAS, CONF_DEVICE_EMMCID, CONF_DEVICE_IMEI, DOMAIN, MANUFACTURER
+from .const import (
+    CONF_DEVICE_EMMCID,
+    CONF_DEVICE_IMEI,
+    DOMAIN,
+    MANUFACTURER,
+    resolve_device_name,
+)
 from .coordinator import VivoFindCoordinator
 
 
@@ -41,13 +47,13 @@ class VivoFindDeviceTracker(CoordinatorEntity[VivoFindCoordinator], TrackerEntit
         # 名称与 unique_id 一律优先取配置项里的静态值，绝不依赖运行期数据。
         # 否则首次刷新拿不到 alias/imei 时会退化成兜底值，下一次刷新又变回来，
         # HA 会当成另一个实体重建 —— 表现为「要重载一次才正常」。
-        self._attr_name = (
-            entry.data.get(CONF_DEVICE_ALIAS)
-            or entry.title
-            or (data.device_alias if data else None)
-            or coordinator.device_name
-            or "VIVO"
-        )
+        #
+        # ⚠️ 名称只认「别名」，**不要**回退到型号。
+        # 型号（如 `iQOO Neo10 Pro`）是产品线名，两台同型号手机必然撞名，
+        # 而别名（如 `iQOOO`）才是用户给这台机器起的唯一名字。用型号当名称
+        # 会让实体 ID 变成 `device_tracker.iqoo_neo10pro`，既与用户预期不符，
+        # 也无法区分同型号的两台设备。
+        self._attr_name = resolve_device_name(entry)
         device_key = (
             entry.data.get(CONF_DEVICE_IMEI)
             or entry.data.get(CONF_DEVICE_EMMCID)

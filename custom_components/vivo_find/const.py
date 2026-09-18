@@ -52,6 +52,33 @@ MANUFACTURER = "vivo"
 
 PLATFORMS = ["device_tracker", "sensor"]
 
+# 名称兜底：别名和 entry.title 都拿不到时用这个。
+# （正常流程下 entry.title 一定有值，这里只是防止手工改 .storage 后炸掉）
+FALLBACK_DEVICE_NAME = "VIVO 设备"
+
+
+def resolve_device_name(entry) -> str:
+    """决定实体的设备名称 —— **唯一**来源，device_tracker 与 sensor 共用。
+
+    优先级刻意排成：别名 > entry.title > 兜底。
+
+    为什么**不**回退到型号（`device_model`）：
+      型号是产品线名，两台同型号的手机必然同名；别名是用户给这台机器起的
+      名字，才具有唯一性。一旦用型号当名称，实体 ID 会变成
+      `device_tracker.iqoo_neo10pro` 这种「看起来像设备名、其实是型号」的
+      东西，既不符合用户预期，也无法区分同型号的两台设备。
+
+    为什么只读 entry.data / entry.title，不读 coordinator.data：
+      运行期数据会抖。首次刷新拿不到 alias 时名称退化成兜底值，下一轮又
+      变回别名 —— HA 会认为这是两个不同实体，表现为「实体凭空多一个」。
+      配置阶段固化的值才是稳定的。
+    """
+    return (
+        (entry.data.get(CONF_DEVICE_ALIAS) or "").strip()
+        or (entry.title or "").strip()
+        or FALLBACK_DEVICE_NAME
+    )
+
 # ---- 服务 ----
 # 手动立刻定位一次。给「想让地址/位置马上更新」的场景用，
 # 比缩小轮询间隔安全得多（不绕过限流冷却）。

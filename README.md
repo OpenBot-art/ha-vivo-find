@@ -1,5 +1,7 @@
 # VIVO 查找设备 · Home Assistant 集成
 
+**简体中文** | [English](#english)
+
 把 vivo 云服务（find.vivo.com.cn）里手机的**实时位置**接进 Home Assistant，
 生成一个标准的 GPS `device_tracker` 实体，可以直接在 HA 地图卡片上看到你的设备。
 
@@ -35,6 +37,36 @@
 
 > 实体 ID 按设备别名生成，例如设备别名是 `iQOOO` 时实体就是
 > `device_tracker.iqooo`。在「开发者工具 → 状态」里搜 `vivo_find` 或你的设备名可确认。
+>
+> ⚠️ **如果你的实体是 `device_tracker.iqoo_neo10pro` 这种「机型名」，看下一节。**
+
+---
+
+## ⚠️ 实体 ID 为什么是机型名（`device_tracker.iqoo_neo10pro`）
+
+**症状**：你期望 `device_tracker.iqooo`，实际得到 `device_tracker.iqoo_neo10pro`。
+
+**根因**：vivo 云服务对**没改过名的设备，返回的 `alias` 就是机型名**。
+本集成用 `alias` 当设备名（因为它才是唯一的），于是：
+
+| vivo 侧的状态 | 接口返回的 alias | 实体 ID |
+|---|---|---|
+| 你给设备起过名 | `iQOOO` | `device_tracker.iqooo` ✅ |
+| **没起过名（默认）** | `iQOO Neo10 Pro` | `device_tracker.iqoo_neo10_pro` ⚠️ |
+
+这不是 bug —— `alias` 字段的值确实是机型名。**改名即可解决**：
+
+1. 打开 <https://find.vivo.com.cn/>，登录
+2. 找到你的设备 → 修改设备名称 → 填一个好认的名字（例如 `iQOOO`）
+3. HA → 设置 → 设备与服务 → 找到「VIVO 查找设备」→ **重新加载**
+4. 实体 ID 会跟着变（HA 会在注册表里保留旧 ID 作为别名，历史数据不丢）
+
+> 集成在添加时会把这个判断打进日志。若日志里出现
+> 「设备名与机型相同」，就是遇到了这个情况。
+
+**为什么不用机型当名称**：机型是产品线名，两台同型号手机必然撞名；
+别名才是你给这台机器起的唯一名字。用机型命名会让同型号的两台设备
+在 HA 里无法区分。
 
 ---
 
@@ -84,7 +116,7 @@
 | 配置项 | 默认 | 说明 |
 |---|---|---|
 | Cookie | 必填 | 上面那段 |
-| 设备名称 | 空 | 单设备留空；多设备填**完整别名**（大小写敏感，例如 `iQOOO`） |
+| 设备名称 | 空 | 单设备留空；多设备填**完整别名**（大小写敏感，例如 `iQOOO`）<br>⚠️ 这里填的是 `<https://find.vivo.com.cn/>` 上的**设备名称**，不是你手机型号。若没改过名，vivo 返回的就是机型名，实体 ID 也会跟着是机型 |
 | 轮询间隔 | 600 秒 | 建议 ≥300 秒，太频繁会撞限流 |
 | 每次刷新下发定位指令 | 开 | 见下面「关于限流」 |
 | 坐标系（接口返回） | `BD-09 百度坐标` | 实测确认，**不要改**，理由见下节 |
@@ -361,6 +393,8 @@ target:
 |---|---|
 | 添加时提示「Cookie 无效或已过期」 | cookie 过期，重新登录复制；确认含 `vivo_yun_csrftoken` |
 | 提示「未找到匹配的设备」 | 多设备时名称必须和别名的**大小写完全一致** |
+| **实体 ID 是机型名**（`device_tracker.iqoo_neo10pro`） | 不是 bug：vivo 对没改名的设备返回的 alias 就是机型名。去 <https://find.vivo.com.cn/> 改名后重载集成，详见上面「实体 ID 为什么是机型名」 |
+| **改了设备名但实体 ID 没变** | HA 会把旧 entity_id 保留成别名，属正常。可在 设置 → 设备与服务 → 实体 里手动改，或删除该实体后重新加载 |
 | 实体不可用、日志有 `读取状态被限流` | 等几分钟，或把轮询间隔调大 |
 | 坐标不更新但实体正常 | 看 `locate_status`；或关闭定位指令开关 |
 | **重启 / 重载后第一轮电量、位置为空** | v1.2.0 已修（落盘恢复 + 首轮避让限流）。若仍出现，看 `last_update_success` 与 `position_age_s` |
@@ -405,6 +439,13 @@ vivo 是**私有接口**，字段结构随时可能变。哪天某个属性突�
 
 ## 开发 / 测试
 
+> **分支约定**：`main` 只放稳定发布版，日常开发都提到 `develop` 分支。
+> 完整的日常工作流、发版步骤与提交信息规范见 **[CONTRIBUTING.md](CONTRIBUTING.md)**。
+>
+> ```bash
+> git checkout develop          # 日常开发从 develop 开始
+> ```
+
 ```bash
 # 准备（仅开发需要）
 python -m venv .venv && .venv/bin/pip install aiohttp
@@ -418,6 +459,9 @@ python dev/test_crs.py
 
 # 地址 / 定位状态逻辑测试
 python dev/test_address.py
+
+# 实体名称 / 实体 ID 生成规则
+python dev/test_naming.py
 
 # 端到端测试（真实调用 vivo 接口）
 python dev/test_api.py
@@ -439,6 +483,9 @@ python dev/ha_probe.py
 - `dev/test_address.py` —— 测「地址只随定位成功返回」这层等价关系：
   首轮该不该下发定位、限流/超时/冷却/离线/开关关闭各自的状态码、
   `address_time` 与 `fix_time` 分离、`locate_now` 的冷却拦截与 force 放行
+- `dev/test_naming.py` —— 测实体名称 / 实体 ID 的生成规则：名称只来自配置项、
+  不回退到机型、首轮次轮一致、`unique_id` 锚定 IMEI（改别名不丢历史）、
+  device_tracker 与 sensor 取名一致（否则设备卡片会分裂成两张）
 - `dev/test_crs.py` —— 测 `crs.py` 的三种坐标系互转：本地往返一致性、
   境外不偏移、实测 BD-09 锚点反推，并与**高德官方转换接口**逐点对照（误差 <5m）
 - `dev/test_api.py` —— 真实打通 vivo 四个接口，并校验经纬度没写反
@@ -478,3 +525,460 @@ python dev/ha_probe.py
 接口调用顺序参考了吾爱破解论坛 [凌帝] 的 VIVO 设备位置监控脚本
 （52pojie.cn/thread-2048559-1-1.html）。本集成是把它重写为
 Home Assistant 原生集成，并修掉了原脚本中若干实测发现的问题。
+
+---
+---
+
+# English
+
+[简体中文](#vivo-查找设备-home-assistant-集成) | **English**
+
+Bring your phone's **live location** from vivo Cloud (find.vivo.com.cn) into Home
+Assistant as a standard GPS `device_tracker` entity, visible on any HA map card.
+
+> This is a purely local integration: every request goes straight from your HA
+> instance to vivo Cloud. **No third-party server is involved**, and the cookie
+> lives only in your own HA configuration.
+
+---
+
+## What you get
+
+| Entity | Type | Description |
+|---|---|---|
+| `device_tracker.iqooo` | **GPS tracker** | The dot on the map. Exposes `latitude` / `longitude` / `location_accuracy` / `battery_level` |
+| `sensor.iqooo_battery` | Sensor | Battery % |
+| `sensor.iqooo_charging` | Sensor | Charging / not charging |
+| `sensor.iqooo_online` | Sensor | Online / offline |
+| `sensor.iqooo_address` | Sensor | Text address. Attributes carry `locate_status` / `address_age_s`, and explain *why* it is empty |
+| `sensor.iqooo_network` | Sensor | 5G / Wi-Fi name |
+| `sensor.iqooo_fix_time` | Sensor | Timestamp of this fix (how "fresh" the position is) |
+
+Additional `device_tracker` attributes:
+
+- **Address**: `address`, `address_time` (when this address was obtained),
+  `address_age_s` (seconds ago — **use this, not `fix_time`**, to judge staleness)
+- **Locate diagnostics**: `locate_status` (result of this round; codes below),
+  `located_live` (fresh vs cached), `locate_throttled`, `position_age_s`,
+  `last_update_success` (`false` means the current values came from cache)
+- **Device state**: `online`, `online_raw`, `accuracy`, `network`,
+  `signal_strength`, `operator`, `charging`, `device_model`, `imei`
+- **CRS debugging**: `raw_coordinates` / `coordinates` / `source_crs` / `target_crs`
+
+> Entity IDs are derived from the device name, e.g. a device named `iQOOO`
+> yields `device_tracker.iqooo`.
+
+> ⚠️ **If your entity looks like `device_tracker.iqoo_neo10pro` (a model name),
+> read the next section.**
+
+---
+
+## ⚠️ Why the entity ID is a model name
+
+**Symptom**: you expected `device_tracker.iqooo` but got
+`device_tracker.iqoo_neo10pro`.
+
+**Root cause**: for a device you have **never renamed**, vivo Cloud returns the
+**model name** in its `alias` field. This integration uses `alias` as the device
+name (it is the only unique one), so:
+
+| State on vivo's side | `alias` returned | Entity ID |
+|---|---|---|
+| You renamed the device | `iQOOO` | `device_tracker.iqooo` ✅ |
+| **Never renamed (default)** | `iQOO Neo10 Pro` | `device_tracker.iqoo_neo10_pro` ⚠️ |
+
+This is not a bug — the `alias` field really does contain the model name.
+**Renaming fixes it**:
+
+1. Open <https://find.vivo.com.cn/> and sign in
+2. Find your device → rename it to something short (e.g. `iQOOO`)
+3. HA → Settings → Devices & Services → "VIVO 查找设备" → **Reload**
+4. The entity ID follows (HA keeps the old ID as an alias, so history survives)
+
+> The integration logs this during setup. If you see "device name equals model
+> name" in the log, you have hit this case.
+
+**Why not just use the model as the name**: a model is a product line, so two
+phones of the same model inevitably collide. The alias is the unique name you
+gave *this* device.
+
+---
+
+## Installation
+
+### Option 1: HACS custom repository
+
+1. HACS → Integrations → ⋮ (top right) → **Custom repositories**
+2. Add `https://github.com/OpenBot-art/ha-vivo-find`, category **Integration**
+3. Search "VIVO 查找设备" → Download → **restart Home Assistant**
+
+### Option 2: Manual copy
+
+Copy the whole `custom_components/vivo_find` folder into your HA config
+directory, then **restart Home Assistant**.
+
+---
+
+## Configuration
+
+1. Open <https://find.vivo.com.cn/> and sign in (**tick "stay signed in for 14
+   days"**; keeping the page visited extends the cookie's life)
+2. Press `F12` → **Network** → reload the page → click any request
+3. Find the `Cookie` request header and **copy it in full**. It must contain
+   `vivo_yun_csrftoken=`; the integration checks for this explicitly (otherwise
+   you would only get an unintelligible error)
+4. HA → Settings → Devices & Services → **Add Integration** → search
+   "VIVO 查找设备"
+5. Paste the cookie, fill in the device name (**leave empty if you only have one
+   device**), set the polling interval
+
+| Option | Default | Notes |
+|---|---|---|
+| Cookie | required | The string above |
+| Device name | empty | Empty for a single device; otherwise the **exact alias** (case sensitive, e.g. `iQOOO`)<br>⚠️ This is the **device name** on <https://find.vivo.com.cn/>, not your phone model. If you never renamed it, vivo returns the model name and your entity ID will match that |
+| Polling interval | 600 s | ≥300 s recommended; shorter intervals hit rate limits |
+| Locate on every refresh | on | See "Rate limiting" below |
+| Coordinate system (API returns) | `BD-09` | Confirmed by measurement, **do not change** |
+| Coordinate system (output to HA) | `WGS84` | HA standard. Only change for AMap-based custom cards |
+
+When the cookie expires, HA **automatically prompts for re-authentication** —
+no need to delete and re-add the integration.
+
+---
+
+## ⚠️ Coordinate systems — the reason your map pin is 1.2 km off
+
+Three incompatible coordinate systems exist in China:
+
+| CRS | Used by |
+|---|---|
+| **WGS84** | Raw GPS, OpenStreetMap, **Home Assistant's internal standard** |
+| **GCJ-02** ("Mars") | AMap, Tencent, Chinese compliant maps |
+| **BD-09** (Baidu) | Baidu Maps |
+
+**Measured conclusion: the vivo API returns BD-09.** HA's `device_tracker`,
+`zone` and `person` logic, plus the default map tiles, are all WGS84. So
+**without conversion the map pin is off by roughly 1200 m** (measured:
+lng +0.012017 / lat +0.003223).
+
+This integration converts `BD-09 → WGS84` by default, so it is correct
+out of the box.
+
+### How this conclusion was reached
+
+Coordinates below are **public landmarks** near Yellow Crane Tower in Wuhan;
+the actual measured values have been redacted. All reference points come from
+real AMap POIs.
+
+Given an API return of `114.309931, 30.550455` with a self-reported address of
+"黄鹤楼公园, 武昌区蛇山西山坡特1号", convert the raw value under each
+hypothesis and compare against AMap's door-number level data:
+
+| Reference point (AMap GCJ-02) | As BD-09 | As GCJ-02 | As WGS84 |
+|---|---|---|---|
+| 蛇山西山坡特1号 **door address** | **86 m** ✅ | 961 m | 1293 m |
+| 黄鹤楼红墙 POI | **310 m** ✅ | 765 m | 1218 m |
+| 胜像宝塔 POI | **233 m** ✅ | 1049 m | 1423 m |
+| 黄鹤楼公园西门售票处 | **248 m** ✅ | 1053 m | 1434 m |
+| 黄鹤楼文创中心 | **221 m** ✅ | 940 m | 1147 m |
+
+Two hard pieces of evidence:
+
+1. **Door-number attribution**: vivo reports "蛇山西山坡特1号", which AMap
+   places inside the scenic area, 221–310 m from the BD-09 candidate. The
+   GCJ-02 candidate lands outside the park in the old town, contradicting the
+   self-reported address.
+2. **Official API cross-check**: AMap's official conversion
+   (`coordsys=baidu`) turns the raw value into `114.303346, 30.544794` —
+   within **0.06 m** of this integration's local implementation.
+
+> Pitfall worth recording: an early attempt used a single POI as an anchor
+> 121 m from the raw value and nearly concluded GCJ-02. That turned out to be
+> coincidence — two POIs ~1 km apart. **Always use door-number evidence plus
+> multiple independent anchors; one POI will lie to you.**
+
+### If the map is still off
+
+Check which map card you use, then change the "output CRS":
+
+| Your map card | Set "output CRS" to |
+|---|---|
+| Built-in `type: map` (OpenStreetMap) | `WGS84` (default) |
+| AMap-backed custom card | `GCJ-02` |
+
+Change it at: Settings → Devices & Services → VIVO 查找设备 → **Configure**.
+
+Both `raw_coordinates` (raw API value) and `coordinates` (converted) are exposed
+so you can compare directly. To re-verify after moving city or changing device,
+run `python dev/check_crs.py`.
+
+---
+
+## Showing it on an HA map
+
+HA map cards only render `device_tracker` (`source_type: gps`) and `person`
+entities.
+
+```yaml
+type: map
+default_zoom: 15
+entities:
+  - entity: device_tracker.iqooo
+```
+
+To get automatic home/away detection, add it to a `person`:
+Settings → People → edit the person → add `device_tracker.iqooo` under
+"Trackers". Automations can then use `person.xxx` state (`home` / `not_home`).
+
+---
+
+## ⚠️ About rate limiting (important)
+
+vivo's "issue locate command" endpoint (`operate`) **is rate limited**. A few
+rapid calls return **"operation too frequent"**, and it **recovers only after
+several minutes**. The integration handles this in three layers:
+
+1. **Cooldown**: 300 s minimum between locate commands
+2. **Recoverable**: hitting the limit is **not a failure** — one WARNING is
+   logged, the last known position is reused, and it retries after 600 s.
+   The entity stays available; the map pin does not disappear
+3. **Visible state**: the `locate_throttled` attribute tells you whether this
+   round was throttled
+
+So:
+
+- If coordinates stop updating, check `locate_throttled` and `fix_time` first
+- To get stable live positions, **raise the polling interval to ≥600 s** rather
+  than lowering it
+- You can disable "locate on every refresh" to read only the cached coordinates —
+  this almost never hits the limit, at the cost of staleness
+
+> Another measured finding: **during throttling `devicestatus` returns empty
+> battery/network fields without raising an error**. The integration falls back
+> to the previous reading instead of blanking your sensors.
+
+### Why is the first refresh after a restart often incomplete?
+
+Measured behaviour: after an HA restart or integration reload, the first refresh
+has empty battery/network values, and you need another reload to get them. Two
+causes stack:
+
+1. **No fallback on the first round.** A freshly constructed coordinator has no
+   history to fall back on. If that round's `devicestatus` happens to be
+   throttled (empty `batteryInfo` / `signalInfo`, **with a normal `code`, no
+   error**), nothing can fill the gap.
+2. **The first round is the most likely to be throttled.** A restart usually
+   follows the previous locate closely, so vivo's rate-limit window is still
+   open — issuing `operate` then is likely rejected and locks out the next
+   few minutes of locating.
+
+Since v1.2.0 three things were added:
+
+| Measure | Effect |
+|---|---|
+| Persist the last successful data (`Store`) | Restored on restart, so battery/position show immediately |
+| Skip the locate command if `devicestatus` already gave coordinates | Avoids the rate-limit window; normal locating resumes from round two |
+| Fast retry on an incomplete first round (2 × 5 s) | Covers second-scale jitter (rate limits are minute-scale; retries cannot fix those) |
+
+**Known side effect**: after a restart the map pin may be the position from the
+previous fix. Judge freshness via `fix_time` or `position_age_s`.
+
+> Entity `unique_id` and name are generated from **static config values**, not
+> runtime data. Previously, if the first refresh could not get the IMEI,
+> `unique_id` degraded to a fallback and then reverted — HA treated it as two
+> different entities. This was one source of "needs a reload to work".
+
+### Why the address becomes "unknown"
+
+The single most misunderstood point. Conclusion first:
+
+> **The address (`locationDesc`) is only returned together with a successful
+> locate command.** The cached position from `devicestatus` **usually has only
+> coordinates, no street address**.
+
+Measured comparison (2026-09-18, same device, one minute apart):
+
+| Source | `locationDesc` | radius | `execMsg` |
+|---|---|---|---|
+| `devicestatus` (device self-reported) | **none** ❌ | 6.0 | `10101__loctype-61` |
+| `operate` + `polling` (after we issue locate) | **present** ✅ | 40.0 | `10101__loctype-161` |
+
+So "empty address" = "no successful locate command this round". Which case it
+is, read from `locate_status`:
+
+| `locate_status` | Meaning | What to do |
+|---|---|---|
+| `ok` | Locate succeeded, address is fresh | Normal |
+| `throttled` | Rate limited by vivo (recoverable) | Wait for the cooldown, or locate manually |
+| `timeout` | Locate command timed out (device offline / powered off) | Retries automatically |
+| `failed` | Other locate failure | Retries automatically |
+| `skipped_cooldown` | Inside the cooldown window | Wait for the next round |
+| `skipped_first_refresh` | First-round avoidance (address already present) | Normal |
+| `skipped_offline` | Device offline | Wait for it to come online |
+| `skipped_disabled` | "Locate on every refresh" is off | **The address will never update** |
+
+Key points:
+
+- **Disabling "locate on every refresh" means the address never updates** — it
+  freezes at the last successful locate. Use the manual locate service instead.
+- The integration **never** blanks an existing address just because the new
+  response lacks one; the address and its `address_time` are kept together.
+- **`fix_time` and `address_time` are different things**: coordinates may be
+  fresh while the address is hours old. Check `address_age_s`.
+- Since v1.3.0 the first-round avoidance only applies when **both** coordinates
+  **and** an address already exist.
+
+### Need to refresh immediately?
+
+Use **`vivo_find.locate_now`**: it does exactly one locate-and-poll and **pushes
+the result straight to the entity**, without waiting for the next cycle.
+
+```yaml
+service: vivo_find.locate_now
+```
+
+`force: true` bypasses the cooldown (only use when you are sure the limit has
+lifted). Neither path bypasses the rate-limit cooldown — deliberately so.
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause / fix |
+|---|---|
+| "Cookie invalid or expired" when adding | Cookie expired — sign in again and re-copy. Ensure `vivo_yun_csrftoken` is present |
+| "No matching device found" | With multiple devices the name must match the alias **exactly**, including case |
+| **Entity ID is a model name** (`device_tracker.iqoo_neo10pro`) | Not a bug: vivo returns the model name as `alias` for never-renamed devices. Rename at <https://find.vivo.com.cn/> and reload |
+| **Renamed the device but the entity ID did not change** | HA keeps the old entity_id as an alias. Edit it manually under Settings → Devices & Services → Entities |
+| Entity unavailable, log says `读取状态被限流` | Wait a few minutes, or increase the polling interval |
+| Coordinates not updating but the entity is fine | Check `locate_status`; or the locate toggle is off |
+| **First refresh after restart has empty battery/position** | Fixed in v1.2.0. If it persists, check `last_update_success` and `position_age_s` |
+| A duplicate entity appeared, the old one unavailable | Fixed in v1.2.0 (`unique_id` no longer depends on runtime data). Delete the extra entity |
+| **Map pin off by kilometres** | Coordinate system issue — see the CRS section; compare `raw_coordinates` vs `coordinates` |
+| **Address becomes "unknown"** | Fixed in v1.3.0. Check `locate_status`, or call `vivo_find.locate_now` |
+| **Address stuck hours behind** | Expected — the address only updates on a successful locate. See `address_age_s` |
+| Battery/network/address flicker in and out | vivo returns empty fields with a normal `code` while throttled; the integration falls back to the previous reading |
+
+Self-check script (run it on a machine that can reach your HA):
+
+```bash
+# Put the HA URL and a long-lived token in dev/ha_token.txt (two lines),
+# or set HA_URL / HA_TOKEN
+python dev/ha_probe.py
+```
+
+It also tells you whether you are actually running the new code — if
+`locate_status` is missing from the attributes, you are on an old version.
+
+Enable debug logging in `configuration.yaml`:
+
+```yaml
+logger:
+  logs:
+    custom_components.vivo_find: debug
+```
+
+vivo's API is **private**; field structures can change without notice. If an
+attribute suddenly goes unknown, run `dev/dump_status.py` to dump the real
+response before adjusting the parsing in `coordinator.py`.
+
+---
+
+## Privacy and security
+
+- The cookie is equivalent to your vivo account credentials — it **can locate
+  your phone**. Make sure you accept storing it in your own HA configuration
+  (`.storage/core.config_entries`).
+- Do not post this integration together with your cookie in a public repo or
+  chat group. `dev/cookie.txt` is already in `.gitignore`.
+- This integration is read-only: it only calls "list devices / get status /
+  locate device" and never sends modifying commands.
+
+---
+
+## Development / testing
+
+> **Branching**: `main` holds stable releases only; day-to-day work goes to
+> `develop`. The full workflow, release steps and commit conventions are in
+> **[CONTRIBUTING.md](CONTRIBUTING.md)**.
+>
+> ```bash
+> git checkout develop          # start day-to-day work from develop
+> ```
+
+```bash
+# Setup (development only)
+python -m venv .venv && .venv/bin/pip install aiohttp
+echo '<your cookie>' > dev/cookie.txt      # or export VIVO_COOKIE='...'
+
+# Pure-logic unit tests (no network, no HA required)
+python dev/test_parse.py
+python dev/test_crs.py
+python dev/test_address.py
+python dev/test_naming.py
+
+# End-to-end test (calls the real vivo API)
+python dev/test_api.py
+
+# Diagnostics
+python dev/check_crs.py        # determine the CRS the API returns
+python dev/check_address.py    # why the address is empty / how old it is
+python dev/ha_probe.py         # read live HA entity state and logs
+```
+
+- `dev/test_parse.py` — pure functions (`_pick`, `_parse_network`,
+  `_parse_fix_time`, `merge_with_previous`) with HA stubbed out
+- `dev/test_restore.py` — the "incomplete first refresh after restart" fix:
+  serialization round-trip, cache fallback, first-round locate avoidance
+- `dev/test_address.py` — the "address only comes with a successful locate"
+  invariant, plus every `locate_status` code
+- `dev/test_naming.py` — entity name / ID generation rules: the name comes only
+  from config, never falls back to the model, is stable across rounds,
+  `unique_id` is anchored to the IMEI, and both platforms agree on the name
+- `dev/test_crs.py` — the three CRS conversions, cross-checked against **AMap's
+  official conversion API** (error <5 m)
+- `dev/test_api.py` — exercises all four vivo endpoints against the real API
+  and verifies latitude/longitude are not swapped
+- `dev/check_crs.py` — pulls the current coordinates and cross-checks against
+  AMap POIs to suggest `source_crs`
+- `dev/check_address.py` — prints the `location` from both `devicestatus` and
+  `operate` so you can see where the address comes from
+- `dev/check_restart.py` — walks the restart sequence against the real API and
+  **manually blanks** `batteryInfo` / `signalInfo` to reproduce a throttled
+  response
+- `dev/ha_probe.py` — reads live HA entity attributes and logs, and determines
+  whether the new code is installed
+- `dev/dump_status.py` — dumps the raw response; use when the API changes
+
+> `operate` is rate limited, so hitting the limit in `test_api.py` is a
+> **SKIP, not a FAIL**.
+
+> ⚠️ When writing tests, note that `make_status(desc=None)` in `dev/_loader.py`
+> **deliberately provides no address** — the real `devicestatus` does not either.
+> An earlier version defaulted to including one, which masked the
+> "first round skips locate → address goes empty" bug. Do not change it back.
+
+---
+
+## Known limitations
+
+- Only vivo / iQOO accounts work (it uses vivo Cloud's private API)
+- Depends on an unofficial API; vivo-side changes may break it
+- Location accuracy depends on the `radius` vivo returns (~40 m measured)
+- When the device is powered off or "find device" is disabled, no new
+  coordinates are available — only the last known position
+- **The address depends on the locate command**: `locationDesc` only comes back
+  with a successful locate. With the locate toggle off, or during prolonged
+  throttling, the address stops updating (but is not blanked)
+- The BD-09 conclusion was measured in Wuhan (all coordinates in this document
+  are redacted public landmarks). The API carries no CRS identifier field. If
+  positions drift again, run `dev/check_crs.py` and adjust the config
+- Live-latency is bounded by vivo's rate limiting, not by the polling interval —
+  a shorter interval is not faster, it just hits the limit sooner
+
+## Credits
+
+The API call sequence references a VIVO device location monitoring script by
+[凌帝] on the 52pojie forum (52pojie.cn/thread-2048559-1-1.html). This
+integration rewrites it as a native Home Assistant integration and fixes
+several issues found through measurement.
