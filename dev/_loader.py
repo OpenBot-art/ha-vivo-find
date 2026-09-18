@@ -14,6 +14,7 @@ import os
 import pathlib
 import sys
 import types
+from dataclasses import dataclass
 
 DEV_DIR = pathlib.Path(__file__).resolve().parent
 REPO_ROOT = DEV_DIR.parent
@@ -77,14 +78,93 @@ def prepare_api():
     return load_module("api")
 
 
+def _Enum(members: dict):
+    """造一个「像 str 枚举」的类。
+
+    真 HA 里这些是 StrEnum，取值比较和 .value 都要能用；这里保持最小语义。
+    """
+    obj = type("_StubEnum", (), {})
+    for key, value in members.items():
+        setattr(obj, key, value)
+    obj._members = members
+    return obj
+
+
 def install_ha_stubs() -> None:
-    """最小可用的 homeassistant 桩，只为让 coordinator.py 能 import。"""
+    """最小可用的 homeassistant 桩，让 coordinator / 实体平台都能 import。
+
+    这里只覆盖代码真正用到的 API。故意不装真 HA —— 真 HA 会拖进
+    FastAPI / SQLAlchemy / numpy 一大串依赖，跑几个纯逻辑测试不值得。
+    """
 
     class ConfigEntry:
         pass
 
     class HomeAssistant:
         pass
+
+    class _Entity:
+        """实体基类桩：只保留 _attr_* 与 name/unique_id 的读写语义。"""
+
+        _attr_name = None
+        _attr_unique_id = None
+        _attr_has_entity_name = False
+        _attr_icon = None
+        _attr_available = True
+
+        @property
+        def name(self):
+            return self._attr_name
+
+        @property
+        def unique_id(self):
+            return self._attr_unique_id
+
+        @property
+        def available(self):
+            return self._attr_available
+
+    class CoordinatorEntity(_Entity):
+        """带 hass / coordinator 的实体基类桩。"""
+
+        # 让 CoordinatorEntity[SomeCoordinator] 这种写法能通过
+        def __class_getitem__(cls, item):
+            return cls
+
+        def __init__(self, coordinator=None):
+            self.coordinator = coordinator
+            self.hass = getattr(coordinator, "hass", None)
+
+        @property
+        def available(self):
+            return True
+
+    class TrackerEntity(_Entity):
+        pass
+
+    class SensorEntity(_Entity):
+        pass
+
+    @dataclass(frozen=True, kw_only=True)
+    class SensorEntityDescription:
+        """描述符桩。
+
+        必须是**真 dataclass**：项目里 VivoSensorDescription 用
+        `@dataclass(frozen=True, kw_only=True)` 继承本类，而 dataclasses
+        只认「dataclass 基类」上声明的字段。如果这里写成普通类（只给
+        类属性默认值），子类 dataclass 会认为父类零字段，构造时直接
+        报 `unexpected keyword argument 'key'`。
+        """
+
+        key: str | None = None
+        name: str | None = None
+        native_unit_of_measurement: str | None = None
+        device_class: str | None = None
+        state_class: str | None = None
+        entity_category: str | None = None
+        icon: str | None = None
+        translation_key: str | None = None
+        entity_registry_enabled_default: bool = True
 
     class ConfigEntryAuthFailed(Exception):
         pass
@@ -148,7 +228,26 @@ def install_ha_stubs() -> None:
     stub(
         "homeassistant.helpers.update_coordinator",
         DataUpdateCoordinator=DataUpdateCoordinator,
+        CoordinatorEntity=CoordinatorEntity,
         UpdateFailed=UpdateFailed,
+    )
+    stub("homeassistant.helpers.entity_platform", AddEntitiesCallback=object)
+    stub("homeassistant.const", PERCENTAGE="%", EntityCategory=_Enum(
+        {"DIAGNOSTIC": "diagnostic", "CONFIG": "config"}
+    ))
+    stub(
+        "homeassistant.components.device_tracker",
+        SourceType=_Enum({"GPS": "gps", "ROUTER": "router"}),
+        TrackerEntity=TrackerEntity,
+    )
+    stub(
+        "homeassistant.components.sensor",
+        SensorDeviceClass=_Enum(
+            {"BATTERY": "battery", "TIMESTAMP": "timestamp"}
+        ),
+        SensorStateClass=_Enum({"MEASUREMENT": "measurement"}),
+        SensorEntity=SensorEntity,
+        SensorEntityDescription=SensorEntityDescription,
     )
     stub("homeassistant.util")
     stub("homeassistant.util.dt", utcnow=lambda: datetime.now(timezone.utc))

@@ -23,7 +23,6 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_DEVICE_ALIAS,
     CONF_DEVICE_EMMCID,
     CONF_DEVICE_IMEI,
     CONF_DEVICE_MODEL,
@@ -36,6 +35,7 @@ from .const import (
     LOCATE_THROTTLED,
     LOCATE_TIMEOUT,
     MANUFACTURER,
+    resolve_device_name,
 )
 from .coordinator import VivoFindCoordinator, VivoFindData
 
@@ -155,7 +155,9 @@ class VivoFindSensor(CoordinatorEntity[VivoFindCoordinator], SensorEntity):
         )
         return {
             "identifiers": {(DOMAIN, imei or entry.entry_id)},
-            "name": entry.data.get(CONF_DEVICE_ALIAS) or entry.title,
+            # 与 device_tracker 共用同一个取名函数，避免两边的设备名不一致 ——
+            # 不一致会导致 HA 把它们归到两张不同的设备卡片下。
+            "name": resolve_device_name(entry),
             "manufacturer": MANUFACTURER,
             "model": (data.device_model if data else None)
             or entry.data.get(CONF_DEVICE_MODEL)
