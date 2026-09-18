@@ -43,7 +43,7 @@
 ### 方式一：HACS 自定义仓库
 
 1. HACS → 集成 → 右上角三点 → **自定义存储库**
-2. 填入本仓库地址，类别选 **集成(Integration)**
+2. 填入 `https://github.com/OpenBot-art/ha-vivo-find`，类别选 **集成(Integration)**
 3. 搜索「VIVO 查找设备」→ 下载 → **重启 Home Assistant**
 
 ### 方式二：手动拷贝
