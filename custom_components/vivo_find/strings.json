@@ -1,0 +1,74 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to VIVO Cloud",
+        "description": "Open find.vivo.com.cn in a browser and sign in, then press F12 -> Network -> any request -> copy the full Cookie value into the field below. The Cookie must contain vivo_yun_csrftoken.",
+        "data": {
+          "cookie": "Cookie",
+          "device_name": "Device name (optional)",
+          "scan_interval": "Poll interval",
+          "locate_on_update": "Send a locate command on every refresh",
+          "source_crs": "Coordinate system returned by VIVO",
+          "target_crs": "Coordinate system to output"
+        },
+        "data_description": {
+          "device_name": "Leave empty if the account has only one device. Otherwise use the device alias, e.g. iQOO",
+          "scan_interval": "300 seconds or more is recommended; polling too often may trigger VIVO rate limiting",
+          "locate_on_update": "When on, the map shows the live position but uses more request quota. When off, only the cached position from the last fix is read",
+          "source_crs": "VIVO returns GCJ-02 (Mars coordinates) in mainland China. Measured and confirmed - leave as is unless you have evidence otherwise.",
+          "target_crs": "WGS84 is the Home Assistant standard: the default map card, zone and person tracking all use it. Choose GCJ-02 only if you render on AMap tiles yourself."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Update VIVO Cookie",
+        "description": "The Cookie for \"{name}\" has expired. Sign in to find.vivo.com.cn again and paste the new full Cookie.",
+        "data": {
+          "cookie": "New Cookie"
+        }
+      },
+      "init": {
+        "title": "VIVO Find Device options",
+        "data": {
+          "scan_interval": "Poll interval",
+          "locate_on_update": "Send a locate command on every refresh",
+          "source_crs": "Coordinate system returned by VIVO",
+          "target_crs": "Coordinate system to output"
+        }
+      }
+    },
+    "error": {
+      "auth": "Cookie is invalid or expired. Get a new one (it must contain vivo_yun_csrftoken)",
+      "cannot_connect": "Cannot reach VIVO Cloud. Check your network and try again",
+      "no_device": "No matching device found. Check the device name, or the account has no devices",
+      "unknown": "Unexpected error. Check the Home Assistant log for details"
+    },
+    "abort": {
+      "already_configured": "This device is already configured",
+      "reauth_successful": "Cookie updated successfully",
+      "reauth_failed": "Re-authentication failed. Remove the integration and add it again"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "battery": {
+        "name": "Battery"
+      },
+      "charging": {
+        "name": "Charging state"
+      },
+      "online": {
+        "name": "Online state"
+      },
+      "address": {
+        "name": "Address"
+      },
+      "network": {
+        "name": "Network type"
+      },
+      "fix_time": {
+        "name": "Location fix time"
+      }
+    }
+  }
+}

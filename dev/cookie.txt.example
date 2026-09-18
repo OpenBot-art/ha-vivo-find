@@ -1,0 +1,10 @@
+# 把 cookie 单行贴到这里，然后重命名为 cookie.txt（本文件不会被提交）
+#
+# 获取方式：
+#   1. 浏览器打开 https://find.vivo.com.cn/ 并登录（勾选「14 天内免登录」）
+#   2. F12 → 网络(Network) → 刷新页面 → 点任意一个请求
+#   3. 请求头里找到 Cookie，整段复制，必须包含 vivo_yun_csrftoken
+#   4. 粘贴成一行（不要换行），保存为 dev/cookie.txt
+#
+# 或者用环境变量代替：
+#   export VIVO_COOKIE='...'

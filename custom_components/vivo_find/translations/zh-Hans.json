@@ -1,0 +1,74 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "连接 VIVO 云服务",
+        "description": "在浏览器打开 find.vivo.com.cn 并登录，按 F12 → 网络 → 任意请求 → 复制完整 Cookie 粘贴到下面。Cookie 必须包含 vivo_yun_csrftoken 字段。",
+        "data": {
+          "cookie": "Cookie",
+          "device_name": "设备名称（可留空）",
+          "scan_interval": "轮询间隔",
+          "locate_on_update": "每次刷新下发定位指令",
+          "source_crs": "接口返回的坐标系",
+          "target_crs": "输出给 HA 的坐标系"
+        },
+        "data_description": {
+          "device_name": "账号下只有一个设备时可留空；多个设备时填设备别名，例如 iQOO",
+          "scan_interval": "建议 300 秒以上，过于频繁可能被 vivo 风控",
+          "locate_on_update": "开启后地图显示实时位置，但会消耗更多请求额度；关闭则只读取上一次定位的缓存坐标",
+          "source_crs": "vivo 在中国大陆返回 GCJ-02（火星坐标），已实测确认。除非有反证，否则保持默认。",
+          "target_crs": "WGS84 是 HA 标准：默认地图卡片、zone 与 person 到家判定都用它。只有你在用高德底图的自定义卡片时才改选 GCJ-02。"
+        }
+      },
+      "reauth_confirm": {
+        "title": "更新 VIVO Cookie",
+        "description": "设备「{name}」的 Cookie 已失效，请重新登录 find.vivo.com.cn 并复制新的完整 Cookie。",
+        "data": {
+          "cookie": "新的 Cookie"
+        }
+      },
+      "init": {
+        "title": "VIVO 查找设备 选项",
+        "data": {
+          "scan_interval": "轮询间隔",
+          "locate_on_update": "每次刷新下发定位指令",
+          "source_crs": "接口返回的坐标系",
+          "target_crs": "输出给 HA 的坐标系"
+        }
+      }
+    },
+    "error": {
+      "auth": "Cookie 无效或已过期，请重新获取（必须包含 vivo_yun_csrftoken）",
+      "cannot_connect": "无法连接 vivo 云服务，请检查网络后重试",
+      "no_device": "未找到匹配的设备，请检查设备名称，或账号下没有设备",
+      "unknown": "出现未预期的错误，请查看 Home Assistant 日志"
+    },
+    "abort": {
+      "already_configured": "该设备已经配置过了",
+      "reauth_successful": "Cookie 更新成功",
+      "reauth_failed": "重新认证失败，请删除集成后重新添加"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "battery": {
+        "name": "电量"
+      },
+      "charging": {
+        "name": "充电状态"
+      },
+      "online": {
+        "name": "在线状态"
+      },
+      "address": {
+        "name": "位置地址"
+      },
+      "network": {
+        "name": "网络类型"
+      },
+      "fix_time": {
+        "name": "定位时间"
+      }
+    }
+  }
+}

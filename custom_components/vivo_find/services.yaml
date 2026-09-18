@@ -1,0 +1,23 @@
+locate_now:
+  name: 立刻定位
+  description: >-
+    立刻向 vivo 云服务下发一次定位指令，并把结果直接推给实体（不用等下一个轮询周期）。
+    地址只随定位指令成功返回，所以这也是「地址为空时手动补一次」的办法。
+    仍然尊重限流冷却，连点不会让接口被限得更久。
+  fields:
+    force:
+      name: 强制下发
+      description: >-
+        无视限流冷却强行下发一次。仅在确认限流已解除时使用 ——
+        冷却期内强行下发有把限流撞得更深的风险。
+      required: false
+      default: false
+      selector:
+        boolean:
+    entry_id:
+      name: 配置项
+      description: 只对指定配置项生效。留空则对全部已加载的 VIVO 查找设备生效。
+      required: false
+      example: 01J8XXXXXXXXXXXX
+      selector:
+        text:
