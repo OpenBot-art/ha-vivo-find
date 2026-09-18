@@ -1,14 +1,14 @@
 {
   "domain": "vivo_find",
   "name": "VIVO 查找设备",
-  "version": "1.3.1",
-  "documentation": "https://github.com/OpenBot-art/ha-vivo-find",
-  "issue_tracker": "https://github.com/OpenBot-art/ha-vivo-find/issues",
   "codeowners": ["@OpenBot-art"],
   "config_flow": true,
   "dependencies": [],
-  "requirements": [],
-  "iot_class": "cloud_polling",
+  "documentation": "https://github.com/OpenBot-art/ha-vivo-find",
   "integration_type": "hub",
-  "loggers": ["custom_components.vivo_find"]
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/OpenBot-art/ha-vivo-find/issues",
+  "loggers": ["custom_components.vivo_find"],
+  "requirements": [],
+  "version": "1.3.1"
 }
