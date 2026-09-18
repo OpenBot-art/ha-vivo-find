@@ -403,7 +403,7 @@ target:
 | **地址变成「未知」** | v1.3.0 已修（地址只随定位成功返回；以前首轮盲目避让会让它变空）。看 `locate_status` 定位原因，或调 `vivo_find.locate_now` 手动补一次 |
 | **地址停在几小时前不动** | 正常现象 —— 地址只在定位成功时更新。看 `address_age_s`；想更新就打开定位开关或手动定位 |
 | **部分实体比别的实体旧**（例如位置是对的，电量却显示「13 分钟前」） | **正常现象**，不是 bug。HA 只在实体值**真正变化**时才更新 `last_updated`；位置每轮都动，而电量/在线/充电/网络长期不变，时间戳就停在原地。判断刷新是否正常请看 `device_tracker` 的 `position_age_s` 与 `last_update_success`，不要看单个传感器的「几分钟前」 |
-| **限流那几分钟所有传感器一起变「不可用」** | v1.3.2 已修（`sensor` 现在覆写 `available`，判定标准与 `device_tracker` 一致：只看有没有拿到数据，不看单轮成功与否）。以前单轮失败会让已用缓存撑住的读数一起变灰 |
+| **限流那几分钟所有传感器一起变「不可用」** | v1.3.1 已修（`sensor` 现在覆写 `available`，判定标准与 `device_tracker` 一致：只看有没有拿到数据，不看单轮成功与否）。以前单轮失败会让已用缓存撑住的读数一起变灰 |
 | 电源/网络/地址字段一阵有一阵无 | vivo 限流期间会返回空字段但 `code` 正常，集成已做「空值回退」保留上次读数；配合 `locate_status` 判断 |
 
 自检脚本（在能连到 HA 的机器上跑，会直接读出实体属性并给结论）：
@@ -860,7 +860,7 @@ lifted). Neither path bypasses the rate-limit cooldown — deliberately so.
 | **Address becomes "unknown"** | Fixed in v1.3.0. Check `locate_status`, or call `vivo_find.locate_now` |
 | **Address stuck hours behind** | Expected — the address only updates on a successful locate. See `address_age_s` |
 | **Some entities look older than others** (e.g. position is fresh but battery says "13 minutes ago") | **Expected, not a bug.** HA only bumps `last_updated` when a value *actually changes*. Position moves every cycle; battery/online/charging/network rarely change, so their timestamp stays put. To judge refresh health, read the `device_tracker`'s `position_age_s` and `last_update_success` — not a single sensor's "N minutes ago" |
-| **All sensors go "unavailable" for a few minutes while throttled** | Fixed in v1.3.2. `sensor` now overrides `available` with the same rule as `device_tracker`: it only asks "did we get any data", not "did this round succeed". Previously a single failed round greyed out readings that the cache had already preserved |
+| **All sensors go "unavailable" for a few minutes while throttled** | Fixed in v1.3.1. `sensor` now overrides `available` with the same rule as `device_tracker`: it only asks "did we get any data", not "did this round succeed". Previously a single failed round greyed out readings that the cache had already preserved |
 | Battery/network/address flicker in and out | vivo returns empty fields with a normal `code` while throttled; the integration falls back to the previous reading |
 
 Self-check script (run it on a machine that can reach your HA):
