@@ -74,6 +74,9 @@ class VivoFindDeviceTracker(CoordinatorEntity[VivoFindCoordinator], TrackerEntit
         刻意不看 last_update_success：单轮失败（限流、网络抖动）不该让地图上
         的点消失 —— 位置的语义本来就是「最后已知」，zone / person 做到家判定
         时更需要它一直在。数据是否陈旧看 fix_time 属性。
+
+        ⚠️ 这里的判断必须与 sensor.py 的可用性**保持一致的来源**，
+        详见 coordinator.VivoFindData.has_any_data 的说明。
         """
         data = self._data
         return data is not None and data.has_coordinates

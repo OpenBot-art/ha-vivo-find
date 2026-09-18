@@ -125,7 +125,12 @@ def install_ha_stubs() -> None:
             return self._attr_available
 
     class CoordinatorEntity(_Entity):
-        """带 hass / coordinator 的实体基类桩。"""
+        """带 hass / coordinator 的实体基类桩。
+
+        available 特意**复刻真 HA 的语义**：看 coordinator.last_update_success。
+        以前这里硬写 True，会把「子类忘记覆写 available 导致限流时实体集体
+        变不可用」这个真 bug 掩盖掉 —— 测试里必须让它跟线上表现一致。
+        """
 
         # 让 CoordinatorEntity[SomeCoordinator] 这种写法能通过
         def __class_getitem__(cls, item):
@@ -137,7 +142,9 @@ def install_ha_stubs() -> None:
 
         @property
         def available(self):
-            return True
+            if self.coordinator is None:
+                return True
+            return getattr(self.coordinator, "last_update_success", True)
 
     class TrackerEntity(_Entity):
         pass
