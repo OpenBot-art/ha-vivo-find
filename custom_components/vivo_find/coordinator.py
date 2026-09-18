@@ -125,6 +125,34 @@ class VivoFindData:
     def has_coordinates(self) -> bool:
         return self.latitude is not None and self.longitude is not None
 
+    @property
+    def has_any_data(self) -> bool:
+        """是否拿到过**任何**可展示的数据。
+
+        用来决定实体可不可用。刻意**不看** last_update_success：
+        单轮失败（限流、网络抖动）时协调器已经用缓存把数据撑住了，
+        此时把实体标成「不可用」等于把回退出来的读数白白藏起来。
+
+        数据是否陈旧要看 fix_time / position_age_s / last_update_success
+        这些属性，而不是让实体整个消失。
+
+        ⚠️ 判定用的是「缺失时为 None」的字段。注意 `online` 的类型是
+        `bool` 且默认 `False`（不是 None），所以**不能**用 `online is not None`
+        来判断存在性 —— 那恒为真，等于这个判断失效。
+        是否拿到在线状态要看 `online_raw`（缺失时确实是 None）。
+        """
+        return any(
+            (
+                self.has_coordinates,
+                self.battery is not None,
+                self.charging is not None,
+                self.online_raw is not None,
+                self.network,
+                self.address,
+                self.fix_time is not None,
+            )
+        )
+
 
 def _safe_float(value: Any) -> float | None:
     try:

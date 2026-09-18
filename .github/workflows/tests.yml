@@ -39,7 +39,7 @@ jobs:
       - name: Pure-logic tests (no network, no HA)
         run: |
           set -e
-          for t in test_parse test_crs test_address test_restore test_naming; do
+          for t in test_parse test_crs test_address test_restore test_naming test_availability; do
             echo "=== $t ==="
             python "dev/$t.py"
           done
