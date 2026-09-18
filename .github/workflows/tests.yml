@@ -1,0 +1,48 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@v4"
+
+      - uses: "actions/setup-python@v5"
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install aiohttp
+
+      - name: Compile check
+        run: python -m py_compile custom_components/vivo_find/*.py
+
+      - name: Validate JSON
+        run: |
+          python - <<'PY'
+          import json, glob, sys
+          bad = []
+          for f in glob.glob("custom_components/vivo_find/**/*.json", recursive=True):
+              try:
+                  json.load(open(f, encoding="utf-8"))
+              except Exception as e:
+                  bad.append(f"{f}: {e}")
+          if bad:
+              print("\n".join(bad)); sys.exit(1)
+          print("JSON OK")
+          PY
+
+      - name: Pure-logic tests (no network, no HA)
+        run: |
+          set -e
+          for t in test_parse test_crs test_address test_restore test_naming; do
+            echo "=== $t ==="
+            python "dev/$t.py"
+          done
+
+  # dev/test_api.py 需要真实 cookie + 出网，只能在本地手动跑，
+  # 不放进 CI —— 它会撞 vivo 限流，且 cookie 不能进仓库。
