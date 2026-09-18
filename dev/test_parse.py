@@ -85,10 +85,10 @@ section("merge_with_previous：限流空字段时保留旧读数")
 old = co.VivoFindData(
     online=True,
     online_raw=1,
-    latitude=30.5591,
-    longitude=114.3508,
+    latitude=30.5506,
+    longitude=114.3098,
     accuracy=40.0,
-    address="武重四街坊",
+    address="黄鹤楼公园",
     battery=40,
     charging=True,
     network="5G",
@@ -100,9 +100,9 @@ check("电量保留", merged.battery, 40)
 check("充电状态保留", merged.charging, True)
 check("网络保留", merged.network, "5G")
 check("运营商保留", merged.operator, "联通")
-check("纬度保留（地图上的点不消失）", merged.latitude, 30.5591)
-check("经度保留", merged.longitude, 114.3508)
-check("地址保留", merged.address, "武重四街坊")
+check("纬度保留（地图上的点不消失）", merged.latitude, 30.5506)
+check("经度保留", merged.longitude, 114.3098)
+check("地址保留", merged.address, "黄鹤楼公园")
 check("has_coordinates 为真", merged.has_coordinates, True)
 
 section("merge_with_previous：真实新值不能被旧值吃掉")

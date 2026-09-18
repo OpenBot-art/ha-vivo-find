@@ -186,7 +186,7 @@ class FakeVivoClient:
     """可编程的 API 客户端替身：想让它返回什么就返回什么。"""
 
     DEVICE = {
-        "imei": "868856076839295",
+        "imei": "860000000000000",
         "emmcId": "EMMC-TEST",
         "alias": "iQOOO",
         "model": "iQOO Neo10 Pro",
@@ -225,8 +225,8 @@ class FakeVivoClient:
 def make_status(
     *,
     online: int = 1,
-    lng: float | None = 114.350962,
-    lat: float | None = 30.558978,
+    lng: float | None = 114.309931,
+    lat: float | None = 30.550455,
     radius: float | None = 40,
     # ⚠️ 默认 None 是**故意的**，为了贴合真实接口：
     # 实测（2026-09-18）devicestatus 返回的 location 里**没有 locationDesc**，

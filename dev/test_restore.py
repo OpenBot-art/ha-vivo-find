@@ -39,9 +39,9 @@ def section(title: str) -> None:
     print("=" * 72)
 
 
-# 实测坐标：vivo 返回 BD-09，转 WGS84 后应当是 114.339043, 30.555106
-VIVO_LNG, VIVO_LAT = 114.350962, 30.558978
-WGS_LNG, WGS_LAT = 114.339043, 30.555106
+# 实测坐标：vivo 返回 BD-09，转 WGS84 后应当是 114.297915, 30.547232
+VIVO_LNG, VIVO_LAT = 114.309931, 30.550455
+WGS_LNG, WGS_LAT = 114.297915, 30.547232
 
 
 def new_entry(entry_id: str) -> L.FakeEntry:
@@ -64,7 +64,7 @@ LOCATE_OK = {
     "longitude": VIVO_LNG,
     "latitude": VIVO_LAT,
     "radius": 30,
-    "locationDesc": "武重四街坊，湖北省武汉市武昌区水果湖街道东湖路104号",
+    "locationDesc": "黄鹤楼公园，湖北省武汉市武昌区蛇山西山坡特1号",
 }
 
 
@@ -88,7 +88,7 @@ full = coord.VivoFindData(
     source_crs="bd09",
     target_crs="wgs84",
     accuracy=40.0,
-    address="武重四街坊，湖北省武汉市武昌区水果湖街道东湖路104号",
+    address="黄鹤楼公园，湖北省武汉市武昌区蛇山西山坡特1号",
     fix_time=coord.datetime(2026, 9, 18, 7, 30, tzinfo=coord.timezone.utc),
     located_live=True,
     locate_throttled=False,
@@ -99,7 +99,7 @@ full = coord.VivoFindData(
     operator="中国联通",
     device_alias="iQOOO",
     device_model="iQOO Neo10 Pro",
-    imei="868856076839295",
+    imei="860000000000000",
     emmc_id="EMMC-TEST",
 )
 
@@ -191,7 +191,7 @@ seed_cache(
     longitude=WGS_LNG,
     raw_latitude=VIVO_LAT,
     raw_longitude=VIVO_LNG,
-    address="武重四街坊（缓存）",
+    address="黄鹤楼公园（缓存）",
     battery=41,
 )
 
@@ -214,7 +214,7 @@ check("首轮已有地址 → 不发定位指令（避让限流）", client3.loc
       f"locate_calls={client3.locate_calls}")
 check("首轮照样拿到坐标", data3.has_coordinates)
 check("首轮 located_live 为 False（不是实时定位来的）", data3.located_live is False)
-check("首轮地址沿用缓存没丢", data3.address == "武重四街坊（缓存）", str(data3.address))
+check("首轮地址沿用缓存没丢", data3.address == "黄鹤楼公园（缓存）", str(data3.address))
 check("首轮状态码为 skipped_first_refresh",
       data3.locate_status == coord.LOCATE_SKIP_FIRST, str(data3.locate_status))
 

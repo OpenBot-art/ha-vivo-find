@@ -71,7 +71,7 @@ async def main() -> None:
     entry = L.FakeEntry(entry_id=ENTRY_ID, title="iQOOO")
     entry.data.update(
         {
-            const.CONF_DEVICE_IMEI: "868856076839295",
+            const.CONF_DEVICE_IMEI: "860000000000000",
             const.CONF_DEVICE_EMMCID: "EMMC-TEST",
             const.CONF_DEVICE_ALIAS: "iQOOO",
             const.CONF_DEVICE_MODEL: "iQOO Neo10 Pro",
@@ -110,14 +110,14 @@ async def main() -> None:
         cached = coord.VivoFindData(
             online=True,
             online_raw=1,
-            latitude=30.555106,
-            longitude=114.339043,
-            raw_latitude=30.558978,
-            raw_longitude=114.350962,
+            latitude=30.547232,
+            longitude=114.297915,
+            raw_latitude=30.550455,
+            raw_longitude=114.309931,
             source_crs="bd09",
             target_crs="wgs84",
             accuracy=40.0,
-            address="武重四街坊，湖北省武汉市武昌区水果湖街道东湖路104号",
+            address="黄鹤楼公园，湖北省武汉市武昌区蛇山西山坡特1号",
             fix_time=coord.datetime(2026, 9, 18, 6, 46, tzinfo=coord.timezone.utc),
             located_live=True,
             battery=41,
@@ -127,7 +127,7 @@ async def main() -> None:
             operator="中国联通",
             device_alias="iQOOO",
             device_model="iQOO Neo10 Pro",
-            imei="868856076839295",
+            imei="860000000000000",
             emmc_id="EMMC-TEST",
         )
         store_probe = coord.VivoFindCoordinator(hass=None, entry=entry)

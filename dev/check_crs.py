@@ -59,7 +59,7 @@ async def fetch_vivo():
 def keywords_from(desc: str) -> list[str]:
     """从 locationDesc 里挑出可以拿去搜 POI 的词。
 
-    典型格式：「武重四街坊，湖北省武汉市武昌区水果湖街道东湖路104号」
+    典型格式：「黄鹤楼公园，湖北省武汉市武昌区蛇山西山坡特1号」
     取逗号前的地名 + 末尾的门牌地址。
     """
     out: list[str] = []
@@ -68,7 +68,7 @@ def keywords_from(desc: str) -> list[str]:
     parts = [p.strip() for p in re.split(r"[，,]", desc) if p.strip()]
     if parts:
         out.append(parts[0])
-    # 最后一段通常是"东湖路104号"这种门牌
+    # 最后一段通常是"蛇山西山坡特1号"这种门牌
     tail = re.search(r"([\u4e00-\u9fa5]{2,}(?:路|街|道|巷)\d+号?)", desc)
     if tail:
         out.append(tail.group(1))

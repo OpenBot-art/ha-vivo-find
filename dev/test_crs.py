@@ -48,7 +48,7 @@ print("=" * 70)
 
 # --- 往返一致性 ---
 spots = [
-    ("武汉", 114.350792, 30.559117),
+    ("武汉", 114.309761, 30.550594),
     ("北京", 116.391248, 39.906844),
     ("上海", 121.473701, 31.230416),
     ("广州", 113.264385, 23.129112),
@@ -72,7 +72,7 @@ for name, lng, lat in spots:
     )
 
 # --- 偏移方向：把接口给的 GCJ 转回 WGS 时，武汉地区应是"经度变小、纬度变大" ---
-w = (114.350792, 30.559117)
+w = (114.309761, 30.550594)
 g = cr.wgs84_to_gcj02(*w)
 back = cr.gcj02_to_wgs84(*g)
 check(
@@ -99,19 +99,19 @@ for name, lng, lat in spots[:3]:
     check(f"{name} BD-09 往返一致", err < 0.5, f"误差 {err:.3f} m")
 
 # --- convert() ---
-c1 = cr.convert(114.350792, 30.559117, "gcj02", "wgs84")
-c2 = cr.gcj02_to_wgs84(114.350792, 30.559117)
+c1 = cr.convert(114.309761, 30.550594, "gcj02", "wgs84")
+c2 = cr.gcj02_to_wgs84(114.309761, 30.550594)
 check("convert() 与直接调用一致", c1 == c2, f"{c1}")
 check("convert() 同坐标系恒等", cr.convert(1.0, 2.0, "wgs84", "wgs84") == (1.0, 2.0))
 check("convert() 未知坐标系原样返回", cr.convert(1.0, 2.0, "zzz", "wgs84") == (1.0, 2.0))
 
 # --- 真实锚点判定：用实测的 GCJ-02 地标，看哪个坐标系假设最吻合 ---
 # 这三个数值来自 2026-09-18 高德实测（门址级 / POI 级，精度足够做判定）。
-VIVO_LNG, VIVO_LAT = 114.350962, 30.558978
+VIVO_LNG, VIVO_LAT = 114.309931, 30.550455
 ANCHORS_GCJ = {
-    "东湖路104号门址": (114.343824, 30.552492),
-    "武重四街坊POI": (114.345277, 30.552235),
-    "武重宿舍POI": (114.345288, 30.553129),
+    "蛇山西山坡特1号门址": (114.302467, 30.544649),
+    "黄鹤楼红墙POI": (114.302691, 30.547544),
+    "胜像宝塔POI": (114.300938, 30.545056),
 }
 print()
 print("--- 用实测 GCJ-02 锚点反推：接口到底是哪个坐标系 ---")
@@ -149,25 +149,25 @@ check(
     out[0] < VIVO_LNG and out[1] < VIVO_LAT,
     f"Δlng={out[0]-VIVO_LNG:+.6f} Δlat={out[1]-VIVO_LAT:+.6f}",
 )
-# 转换后（WGS84）再转回 GCJ-02，应落在东湖路104号附近 —— 闭环验证
+# 转换后（WGS84）再转回 GCJ-02，应落在蛇山西山坡特1号附近 —— 闭环验证
 back_gcj = cr.wgs84_to_gcj02(out[0], out[1])
-d104 = dist_m(*ANCHORS_GCJ["东湖路104号门址"], *back_gcj)
+d104 = dist_m(*ANCHORS_GCJ["蛇山西山坡特1号门址"], *back_gcj)
 check(
-    "闭环：BD-09→WGS84→GCJ 后落在「东湖路104号」150m 内",
+    "闭环：BD-09→WGS84→GCJ 后落在「蛇山西山坡特1号」150m 内",
     d104 < 150,
     f"{d104:.0f} m  ({back_gcj[0]:.6f},{back_gcj[1]:.6f})",
 )
 
-ident = coord.convert_coordinates(114.350792, 30.559117, "wgs84", "wgs84")
-check("同坐标系时不产生偏移", ident == (114.350792, 30.559117), f"{ident}")
+ident = coord.convert_coordinates(114.309761, 30.550594, "wgs84", "wgs84")
+check("同坐标系时不产生偏移", ident == (114.309761, 30.550594), f"{ident}")
 
 check("经度缺失 → (None, None)", coord.convert_coordinates(None, 30.5, "gcj02", "wgs84") == (None, None))
 check("纬度缺失 → (None, None)", coord.convert_coordinates(114.3, None, "gcj02", "wgs84") == (None, None))
 check("全缺失 → (None, None)", coord.convert_coordinates(None, None, "gcj02", "wgs84") == (None, None))
 
 # --- 反向：输出 GCJ-02（给高德底图卡片用）---
-out2 = coord.convert_coordinates(114.350792, 30.559117, "gcj02", "gcj02")
-check("target=gcj02 时原样透传（卡片自己处理）", out2 == (114.350792, 30.559117), f"{out2}")
+out2 = coord.convert_coordinates(114.309761, 30.550594, "gcj02", "gcj02")
+check("target=gcj02 时原样透传（卡片自己处理）", out2 == (114.309761, 30.550594), f"{out2}")
 
 # ============================================================
 print()
@@ -186,7 +186,7 @@ try:
         import re
 
         cases = [
-            ("武汉", 114.350962, 30.558978),
+            ("武汉", 114.309931, 30.550455),
             ("北京", 116.391248, 39.906844),
             ("上海", 121.473701, 31.230416),
         ]
@@ -202,6 +202,11 @@ try:
                 if not locs:
                     print(f"  [SKIP] {name}: 接口未返回结果  {str(res)[:110]}")
                     continue
+                if "*" in str(locs):
+                    # 高德会随机给返回值打掩码（防爬），形如 114.3153****1632，
+                    # 直接解析会得到被截断的假坐标，必须跳过而不是当成偏差。
+                    print(f"  [SKIP] {name}: 接口返回带掩码，无法比对  {str(locs)[:70]}")
+                    continue
                 nums = [float(x) for x in re.findall(r"-?\d+\.\d+", str(locs))]
                 if len(nums) < 2 or not (-180 <= nums[0] <= 180 and -90 <= nums[1] <= 90):
                     print(f"  [SKIP] {name}: 无法解析  {str(locs)[:70]}")
@@ -215,14 +220,16 @@ try:
                     f"高德 {glng:.6f},{glat:.6f} | 本地 {my_lng:.6f},{my_lat:.6f} | 差 {err:.2f} m",
                 )
 
-        # 专门验证：把 vivo 实测坐标当 BD-09 交给高德，应落在「东湖路104号」附近
-        res = conv({"coords": "114.350962,30.558978", "coordsys": "baidu"})
+        # 专门验证：把 vivo 实测坐标当 BD-09 交给高德，应落在「蛇山西山坡特1号」附近
+        res = conv({"coords": "114.309931,30.550455", "coordsys": "baidu"})
         locs = ((res or {}).get("data") or {}).get("locations")
         nums = [float(x) for x in re.findall(r"-?\d+\.\d+", str(locs))]
-        if len(nums) >= 2:
-            d = dist_m(nums[0], nums[1], 114.343824, 30.552492)
+        if "*" in str(locs):
+            print("  [SKIP] vivo BD-09 门址校验：接口返回带掩码，无法比对")
+        elif len(nums) >= 2:
+            d = dist_m(nums[0], nums[1], 114.302467, 30.544649)
             check(
-                "vivo 坐标按 BD-09 转换后落在「东湖路104号」100m 内",
+                "vivo 坐标按 BD-09 转换后落在「蛇山西山坡特1号」100m 内",
                 d < 100,
                 f"高德给 {nums[0]:.6f},{nums[1]:.6f}  距门址 {d:.0f} m",
             )

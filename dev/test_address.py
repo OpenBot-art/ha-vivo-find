@@ -37,9 +37,9 @@ def check(name, ok, detail=""):
 
 
 LOCATED = {
-    "longitude": 114.350814,
-    "latitude": 30.559136,
-    "locationDesc": "武重四街坊，湖北省武汉市武昌区水果湖街道东湖路104号",
+    "longitude": 114.309783,
+    "latitude": 30.550613,
+    "locationDesc": "黄鹤楼公园，湖北省武汉市武昌区蛇山西山坡特1号",
     "radius": 40,
     "time": 1789720206000,
 }
@@ -103,11 +103,11 @@ async def t2_first_refresh_skips_when_address_known():
     eid = "t2"
     seed_cache(
         eid,
-        latitude=30.5591,
-        longitude=114.3507,
-        raw_latitude=30.559136,
-        raw_longitude=114.350814,
-        address="武重四街坊（缓存）",
+        latitude=30.5506,
+        longitude=114.3097,
+        raw_latitude=30.550613,
+        raw_longitude=114.309783,
+        address="黄鹤楼公园（缓存）",
         address_time=None,
         battery=41,
     )
@@ -121,7 +121,7 @@ async def t2_first_refresh_skips_when_address_known():
           f"locate_calls={c.client.locate_calls}")
     check("locate_status=skipped_first_refresh",
           d.locate_status == const.LOCATE_SKIP_FIRST, str(d.locate_status))
-    check("地址沿用缓存没丢", d.address == "武重四街坊（缓存）", str(d.address))
+    check("地址沿用缓存没丢", d.address == "黄鹤楼公园（缓存）", str(d.address))
 
 
 async def t3_first_refresh_without_cached_address():
@@ -130,10 +130,10 @@ async def t3_first_refresh_without_cached_address():
     eid = "t3"
     seed_cache(
         eid,
-        latitude=30.5591,
-        longitude=114.3507,
-        raw_latitude=30.559136,
-        raw_longitude=114.350814,
+        latitude=30.5506,
+        longitude=114.3097,
+        raw_latitude=30.550613,
+        raw_longitude=114.309783,
         battery=41,
     )
     c, _ = build(eid)
@@ -253,7 +253,7 @@ async def t8_address_time_separate_from_fix_time():
 
     # 第2轮：devicestatus 给了**更新**的坐标和 fix_time，但没有地址
     c.client = L.FakeVivoClient(
-        status=L.make_status(lng=114.352086, lat=30.561536, radius=6,
+        status=L.make_status(lng=114.311055, lat=30.553013, radius=6,
                              desc=None, fix_ms=1789730000000),
         locate_error=api.VivoFindRateLimitError("操作过于频繁"),
     )
@@ -273,9 +273,9 @@ async def t9_serialize_roundtrip():
 
     moment = datetime(2026, 9, 18, 8, 30, 6, tzinfo=timezone.utc)
     original = coord.VivoFindData(
-        latitude=30.5591,
-        longitude=114.3507,
-        address="武重四街坊",
+        latitude=30.5506,
+        longitude=114.3097,
+        address="黄鹤楼公园",
         address_time=moment,
         fix_time=moment,
         locate_status=const.LOCATE_OK,
@@ -303,9 +303,9 @@ async def t10_locate_now_service_logic():
     c.client = L.FakeVivoClient(
         status=L.make_status(desc=None),
         locate={
-            "longitude": 114.350814,
-            "latitude": 30.559136,
-            "locationDesc": "武重四街坊，湖北省武汉市武昌区水果湖街道东湖路104号",
+            "longitude": 114.309783,
+            "latitude": 30.550613,
+            "locationDesc": "黄鹤楼公园，湖北省武汉市武昌区蛇山西山坡特1号",
             "radius": 40,
             "time": None,
         },
