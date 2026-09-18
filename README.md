@@ -405,6 +405,13 @@ vivo 是**私有接口**，字段结构随时可能变。哪天某个属性突�
 
 ## 开发 / 测试
 
+> **分支约定**：`main` 只放稳定发布版，日常开发都提到 `develop` 分支。
+> 完整的日常工作流、发版步骤与提交信息规范见 **[CONTRIBUTING.md](CONTRIBUTING.md)**。
+>
+> ```bash
+> git checkout develop          # 日常开发从 develop 开始
+> ```
+
 ```bash
 # 准备（仅开发需要）
 python -m venv .venv && .venv/bin/pip install aiohttp
