@@ -1,0 +1,52 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@v4"
+
+      - uses: "actions/setup-python@v5"
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install aiohttp
+
+      - name: Compile check
+        run: python -m py_compile custom_components/vivo_find/*.py
+
+      - name: Validate JSON
+        run: |
+          python - <<'PY'
+          import json, glob, sys
+          bad = []
+          for f in glob.glob("custom_components/vivo_find/**/*.json", recursive=True):
+              try:
+                  json.load(open(f, encoding="utf-8"))
+              except Exception as e:
+                  bad.append(f"{f}: {e}")
+          if bad:
+              print("\n".join(bad)); sys.exit(1)
+          print("JSON OK")
+          PY
+
+      - name: Pure-logic tests (no network, no HA)
+        run: |
+          set -e
+          for t in test_parse test_crs test_address test_restore; do
+            echo "=== $t ==="
+            python "dev/$t.py"
+          done
+
+  # dev/test_api.py 需要真实 cookie + 出网，只能在本地手动跑，
+  # 不放进 CI —— 它会撞 vivo 限流，且 cookie 不能进仓库。
+  #
+  # 注：test_naming / test_availability 暂未纳入。这两个套件随
+  # v1.3.1 的命名修复与可用性修复一起在回滚中被移除，当前代码
+  # 里没有对应实现，跑起来必然失败。待重新引入修复时再加回。
