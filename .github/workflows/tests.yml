@@ -39,14 +39,10 @@ jobs:
       - name: Pure-logic tests (no network, no HA)
         run: |
           set -e
-          for t in test_parse test_crs test_address test_restore; do
+          for t in test_parse test_crs test_address test_restore test_naming test_availability; do
             echo "=== $t ==="
             python "dev/$t.py"
           done
 
   # dev/test_api.py 需要真实 cookie + 出网，只能在本地手动跑，
   # 不放进 CI —— 它会撞 vivo 限流，且 cookie 不能进仓库。
-  #
-  # 注：test_naming / test_availability 暂未纳入。这两个套件随
-  # v1.3.1 的命名修复与可用性修复一起在回滚中被移除，当前代码
-  # 里没有对应实现，跑起来必然失败。待重新引入修复时再加回。
