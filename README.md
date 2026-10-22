@@ -88,7 +88,7 @@
 | Cookie | 必填 | 上面那段 |
 | 设备名称 | 空 | 单设备留空；多设备填**完整别名**（大小写敏感，例如 `iQOOO`） |
 | 轮询间隔 | 600 秒 | 建议 ≥300 秒，太频繁会撞限流 |
-| 每次刷新下发定位指令 | 开 | 见下面「关于限流」 |
+| 每次刷新下发定位指令 | 开 | 见下面「关于限流」；想要**零限流**就关掉（推荐配置见该节） |
 | 坐标系（接口返回） | `BD-09 百度坐标` | 实测确认，**不要改**，理由见下节 |
 | 坐标系（输出给 HA） | `WGS84` | HA 标准。只有用高德底图卡片时才改 |
 
@@ -243,6 +243,23 @@ vivo 的「下发定位指令」（`operate`）接口**有限流**，实测连�
 > 还有一个实测发现：**限流期间 `devicestatus` 会返回空的电量/网络字段，
 > 但不报错**。集成里做了「空值回退」——新数据为空时保留上一次的读数，
 > 不会把你的电量传感器清成未知。
+
+### 零限流模式（推荐配置）
+
+如果你要的是「长期安静地看设备信息和最近定位，不想跟限流较劲」，
+按下面这样配，**全程只读 `devices` + `devicestatus` 两个接口，
+永不下发定位指令，也就永远不撞 `operate` 的限流**：
+
+| 配置项 | 取值 | 效果 |
+|---|---|---|
+| 轮询间隔 | 600 秒（10 分钟） | 默认值即可，设备信息 + 最近定位每 10 分钟刷新一次 |
+| 每次刷新下发定位指令 | **关** | 零限流；坐标取 `devicestatus` 返回的上次定位缓存值 |
+
+代价要知道：**文字地址（`locationDesc`）只随定位指令成功返回**，
+关掉后地址不会更新（沿用上一次的，没有就一直是空）。
+位置照样每 10 分钟刷新（设备自己上报的缓存坐标）。
+想马上补一次地址/位置，随时调用 `vivo_find.locate_now` 服务，
+它走独立的冷却通道，不会把你撞进限流。
 
 ### 为什么重启 / 重载后第一轮常常取不到数据？
 
@@ -579,7 +596,7 @@ Then **restart Home Assistant**.
 | Cookie | required | The string above |
 | Device name | empty | Empty for a single device; otherwise the **exact alias** (case sensitive, e.g. `iQOOO`) |
 | Polling interval | 600 s | ≥300 s recommended; shorter intervals hit rate limits |
-| Locate on every refresh | on | See "About rate limiting" below |
+| Locate on every refresh | on | See "About rate limiting" below; turn it **off** for zero rate limiting (recommended configuration in that section) |
 | Coordinate system (API returns) | `BD-09` (Baidu) | Confirmed by measurement, **do not change** — see the next section |
 | Coordinate system (output to HA) | `WGS84` | HA standard. Only change for AMap-based custom cards |
 
@@ -755,6 +772,25 @@ So:
 > Another measured finding: **during throttling `devicestatus` returns empty
 > battery/network fields without raising an error**. The integration falls back
 > to the previous reading, so your battery sensor is never blanked to unknown.
+
+#### Zero-rate-limit mode (recommended configuration)
+
+If what you want is "quietly watch device info and the latest location in the
+long run, without fighting the rate limit", configure it like this —
+**only `devices` + `devicestatus` are read, no locate command is ever issued,
+so you never hit the `operate` rate limit**:
+
+| Setting | Value | Effect |
+|---|---|---|
+| Polling interval | 600 s (10 min) | The default works as-is; device info + latest location refresh every 10 minutes |
+| Locate on every refresh | **Off** | Zero rate limiting; coordinates come from the cached previous fix returned by `devicestatus` |
+
+The trade-off: **the text address (`locationDesc`) is only returned with a
+successful locate command**, so with it off the address stops updating (it
+keeps the last one, or stays empty). The position itself still refreshes every
+10 minutes (the device-reported cached coordinates). To top up an
+address/position right away, call the `vivo_find.locate_now` service at any
+time — it goes through a separate cooldown channel and won't get you throttled.
 
 #### Why is the first refresh after a restart often incomplete?
 

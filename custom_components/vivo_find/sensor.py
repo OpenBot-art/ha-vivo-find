@@ -23,7 +23,6 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_DEVICE_ALIAS,
     CONF_DEVICE_EMMCID,
     CONF_DEVICE_IMEI,
     CONF_DEVICE_MODEL,
@@ -36,6 +35,7 @@ from .const import (
     LOCATE_THROTTLED,
     LOCATE_TIMEOUT,
     MANUFACTURER,
+    resolve_device_name,
 )
 from .coordinator import VivoFindCoordinator, VivoFindData
 
@@ -155,13 +155,32 @@ class VivoFindSensor(CoordinatorEntity[VivoFindCoordinator], SensorEntity):
         )
         return {
             "identifiers": {(DOMAIN, imei or entry.entry_id)},
-            "name": entry.data.get(CONF_DEVICE_ALIAS) or entry.title,
+            # 与 device_tracker 共用同一个取名函数，避免两边的设备名不一致 ——
+            # 不一致会导致 HA 把它们归到两张不同的设备卡片下。
+            "name": resolve_device_name(entry),
             "manufacturer": MANUFACTURER,
             "model": (data.device_model if data else None)
             or entry.data.get(CONF_DEVICE_MODEL)
             or "查找设备",
             "configuration_url": "https://find.vivo.com.cn/",
         }
+
+    @property
+    def available(self) -> bool:
+        """只要这一轮有任一可展示数据就保持可用。
+
+        ⚠️ 必须覆写：CoordinatorEntity 的默认实现看 `last_update_success`，
+        用它会导致「单轮失败（限流/网络抖动）时传感器集体变不可用」——
+        可协调器明明已经用缓存把数据撑住了（见 coordinator 的 merge_with_previous
+        与空值回退）。默认实现会把回退出来的读数白白藏起来，表现为：
+        限流那几分钟里电量/网络/地址全变成「不可用」，用户以为集成挂了。
+
+        device_tracker 早就这么做了（有坐标就可用），sensor 这里与它对齐，
+        让同一个协调器下所有实体的可用性语义保持一致。
+        数据是否陈旧看 last_update_success / position_age_s 属性。
+        """
+        data = self.coordinator.data
+        return data is not None and data.has_any_data
 
     @property
     def native_value(self) -> Any:

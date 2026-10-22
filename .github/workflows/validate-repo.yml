@@ -1,0 +1,25 @@
+name: Repo Consistency
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ["v*"]
+  pull_request:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  consistency:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 需要完整历史与 tag 才能比对 manifest 版本与最新发布版本
+          fetch-depth: 0
+
+      - name: Check manifest version vs git tag
+        run: python .github/scripts/check_version.py
+
+      - name: Check README bilingual sync
+        run: python .github/scripts/check_readme_bilingual.py

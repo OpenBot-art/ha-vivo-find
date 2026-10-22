@@ -1,0 +1,41 @@
+name: 功能建议 / Feature request
+description: 提一个想法或改进建议 / Suggest an idea or improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提建议前请先搜一下现有 issue，避免重复 / Please search existing issues first to avoid duplicates.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 想解决什么问题 / Problem to solve
+      description: 描述场景与痛点，而不是直接描述方案 / Describe the scenario and the pain point, not the solution
+      placeholder: 每次想手动刷新位置都要进开发者工具调服务，希望地图卡片上能直接点 / …
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 期望的方案 / Proposed solution
+      description: 你心目中的形态，包括配置项、实体、服务等 / What it should look like — config options, entities, services, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 考虑过的替代方案 / Alternatives considered
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        > 涉及 vivo 接口的新调用请附上依据（抓包 / 文档 / 实测），
+        > 未经验证的接口形态容易被风控。
+        >
+        > For new vivo API calls, please attach evidence (packet capture / docs /
+        > measured behaviour) — unverified call shapes tend to get blocked.

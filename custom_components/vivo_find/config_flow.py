@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 import voluptuous as vol
@@ -45,6 +46,7 @@ from .const import (
     DEFAULT_SOURCE_CRS,
     DEFAULT_TARGET_CRS,
     DOMAIN,
+    FALLBACK_DEVICE_NAME,
     MAX_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
 )
@@ -79,6 +81,15 @@ def _crs_selector(options: list[SelectOptionDict]) -> SelectSelector:
     return SelectSelector(
         SelectSelectorConfig(options=options, mode=SelectSelectorMode.DROPDOWN)
     )
+
+
+def _slugify(value: str) -> str:
+    """近似复刻 HA 的 entity_id 生成规则，只为把预期结果打进日志。
+
+    真实转换由 HA 内核按语言与实体注册表处理，这里不追求 100% 一致，
+    只是让用户一眼能对上「日志里这个 ID ≈ 我会看到的实体 ID」。
+    """
+    return re.sub(r"[^a-z0-9]+", "_", value.lower()).strip("_")
 
 
 def _build_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
@@ -143,6 +154,9 @@ def _device_identity(device: dict[str, Any]) -> dict[str, str]:
     return {
         CONF_DEVICE_IMEI: str(device.get("imei") or ""),
         CONF_DEVICE_EMMCID: str(device.get("emmcId") or ""),
+        # alias 存原值（可能为空）；名称的优先级由 const.resolve_device_name 统一决定，
+        # 这里不做「空则填型号」的补齐 —— 那会让「用户起的名」和「机型兜底」
+        # 在数据里不可区分，以后想判断就没办法了。
         CONF_DEVICE_ALIAS: (device.get("alias") or "").strip(),
         CONF_DEVICE_MODEL: str(device.get("model") or device.get("modelName") or ""),
     }
@@ -183,11 +197,41 @@ class VivoFindConfigFlow(ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(f"{DOMAIN}_{imei}")
                 self._abort_if_unique_id_configured()
 
-                alias = (device.get("alias") or "").strip() or "VIVO 设备"
+                # 名称取别名；别名缺失才退到型号，最后才是兜底。
+                #
+                # 这里必须说清一个 vivo 侧的事实：**用户没给设备改过名时，
+                # 接口返回的 alias 就是机型名**（如 `iQOO Neo10 Pro`）。
+                # 所以「alias == model」不代表用户真起了这个名字，而是没起名。
+                # 这直接决定 entity_id —— 表现为 `device_tracker.iqoo_neo10pro`
+                # 而不是用户以为的 `device_tracker.iqooo`。日志里明确打出来，
+                # 免得用户看到实体 ID 跟预期不符时无从下手。
+                alias = (device.get("alias") or "").strip()
+                model = str(device.get("model") or device.get("modelName") or "").strip()
+                if alias:
+                    title = alias
+                elif model:
+                    title = model
+                    _LOGGER.info(
+                        "vivo 返回的 alias 为空，改用机型名 %r 作为设备名。"
+                        "实体 ID 会是 %s；想换成自己起的名字，"
+                        "请到 find.vivo.com.cn 给设备改名后重新添加集成",
+                        model,
+                        f"device_tracker.{_slugify(model)}",
+                    )
+                else:
+                    title = FALLBACK_DEVICE_NAME
+
+                if alias and model and alias == model:
+                    _LOGGER.info(
+                        "设备名 %r 与机型相同 —— vivo 对未改名的设备就是这么返回的。"
+                        "若想让实体 ID 更好认，可到 find.vivo.com.cn 给设备改名",
+                        alias,
+                    )
+
                 # 设备身份一并写进 entry.data，供实体生成稳定的 unique_id
                 # （title 也用它，是 entity_id 的稳定来源）
                 return self.async_create_entry(
-                    title=alias,
+                    title=title,
                     data={**user_input, **_device_identity(device)},
                 )
 

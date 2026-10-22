@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 先看 README 排错一节 / Read the README troubleshooting section first
+    url: https://github.com/OpenBot-art/ha-vivo-find#排错
+    about: 大部分「不工作」在那里有答案 / Most "it doesn't work" cases are answered there
+  - name: 发布流程与版本问题 / Release process & versioning questions
+    url: https://github.com/OpenBot-art/ha-vivo-find/blob/main/docs/RELEASE.md
+    about: HACS 更新体验、版本号对不上等问题 / HACS update experience, version mismatches, etc.
